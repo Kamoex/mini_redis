@@ -1,5 +1,6 @@
 #pragma once
 #include "hiredis.h"
+#include "redis_define.h"
     
 namespace mini_redis
 {
@@ -17,15 +18,30 @@ namespace mini_redis
         void free_reply(redisReply** p_reply);
         bool check_result(redisContext* p_redis_context, redisReply** p_reply);
 
-        /*template<class... Args >
-        void excute(EREDIS_COMMENDS e_cmd, Args... args);*/
+        template<class T>
+        void parse(T&& t)
+        {
+            T t1 = t;
+            int a = 1;
+        }
 
-        // connection commands
-        redisReply* auth(const char* str_user, const char* str_password, redisContext* p_redis_context);
-        redisReply* echo(const char* str_echo, redisContext* p_redis_context);
-        redisReply* ping(const char* str_ping_msg, redisContext* p_redis_context);
-        redisReply* quit(redisContext* p_redis_context);
-        redisReply* select(const char* str_db, redisContext* p_redis_context);
+        template<class... Args >
+        redisReply* default_excute(redisContext* p_redis_context, const char* str_cmd, Args ... args)
+        {
+            REDIS_ERR_CHECK(p_redis_context, , nullptr);
+
+            int arr[100] = { (parse(args), 0)... };
+
+            redisReply* p_reply = (redisReply*)redisCommand(p_redis_context, str_cmd, std::forward<Args>(args)...);
+
+            if (!check_result(p_redis_context, &p_reply))
+                return nullptr;
+
+            return p_reply;
+        }
+
+        // key commands
+        redisReply* set_key(redisContext* p_redis_context, const char* str_key, const char* str_val, ESET_KEY_MODE u_mod, unsigned long long u_expire_time);
 
     private:
         redis* m_predis;
